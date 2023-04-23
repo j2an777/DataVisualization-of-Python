@@ -1,0 +1,132 @@
+# 프로그램에 사용할 라이브러리
+import csv
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 필요한 리스트 초기화
+dataList = []       #읽어온 데이터를 한줄 씩 저장하기 위한 리스트 초기화
+calNum = [13, 10, 7, 4, 1]  # 연도별 데이터들을 가져오기 위한 위치지정 리스트 초기값
+dataPlot = []            # [그래프]기능 구현하기위한 데이터 저장 리스트 초기화
+searchList = []          # [검색]기능의 검색하고자 하는 데이터 저장 리스트 초기화
+dic_level = {}           # [순위]기능 key를 지역, value를 data로 저장하는 딕셔너리
+
+# 파일 읽어오기 및 ndarray 생성
+f = open("전국_범죄발생건수_시도__fver.csv", 'r', encoding = 'CP949')
+data = csv.reader(f)
+for d in data:
+    dataList.append(d)
+npData = np.array(dataList)
+        
+# 프로그램 구현
+while (True):
+    print("지역별 범죄발생비율(1000명당 범죄발생건수)에 대한 정보 알림 프로그램입니다.")
+    stNum = input("시작 하시겠습니까?(yes[y] / no[n]) ")
+    
+    if (stNum == 'n') :
+        print("시스템을 종료합니다.")
+        break
+        
+    elif (stNum == 'y') :
+        print("(1)검색\t(2)순위\t(3)그래프")
+        inNum = int(input("메뉴를 고르시오 : "))
+            
+        # [검색]기능 구현 - list를 이용한 구현
+        if (inNum == 1) :
+            print("검색 지역에 대한 정보 입니다.")
+            name = input("지역이름 입력(영어) : ")
+            nyear = int(input("년도 입력 : "))
+            
+            number = 2020 - nyear
+            
+            for x in dataList :
+                if name in x :
+                    for y in  x :
+                        searchList.append(y)
+                        
+            print(name, "지역의", nyear,"년도 정보 입니다.")
+            print("범죄발생비율 :", searchList[calNum[number]], "(%) / 범죄발생 건수 :", 
+                  searchList[calNum[number]+1], "(건) / 등록 인구 :", searchList[calNum[number]+2], "명")
+            
+            del searchList[:]
+            print("처음으로 돌아갑니다.")
+            print('-'*90)
+                
+        # [순위]기능 구현 - dictionary, tuple로 구현
+        elif (inNum == 2) :
+            print("2016 ~ 2020년 까지의 원하는 연도와 보고싶은 범위의 순위를 입력하시오.")
+            yNum = int(input("년도 입력 : "))
+            leNum = int(input("몇위까지 입력 : "))
+            
+            number2 = 2020 - yNum
+            
+            dic_label = npData[2:, 0].tolist()
+            dic_data = npData[2:, calNum[number2]].tolist()
+            
+            for i in range(len(dataList)-2) :
+                dic_level[dic_label[i]] = dic_data[i]    # key - dic_label(지역), value - dic_data(data)
+                
+            # dic_level 객체를 lambda 활용하여 튜플에서 1번째 index기준으로 내림차순 정렬
+            sort_level = sorted(dic_level.items(), key = lambda x : x[1], reverse = True)
+            
+            print("지역별 {0}년도 기준 1위부터 {1}위 까지 정보 입니다.".format(yNum, leNum))
+            for i in range(leNum) :
+                print("[",i+1,"]위 : 지역 -", sort_level[i][0], "\t/\t범죄발생비율 -", sort_level[i][1])
+            print("처음으로 돌아갑니다.")
+            print('-'*90)
+                    
+        # [그래프]기능 구현 - matplotlib으로 시각화 표현
+        elif (inNum == 3) :
+            print("지역별 / 연도별범죄발생비율 시각화 정보 입니다.")
+            sele = int(input("지역별(1) / 연도별(2) 선택입력 :"))
+            
+            # 지역별 데이터를 활용한 빨강 점선 그래프 시각화
+            if (sele == 1) :
+                name = input("지역 이름 입력(영어) : ")
+            
+                count = 0
+            
+                for j in range(len(dataList)) :
+                    if name in npData[j, :] :
+                        plotArray = np.array(npData[j, :])
+                for k in range(1, len(plotArray), 3) :
+                    dataPlot.insert(count, float(plotArray[k]))
+                    count = count + 1
+                
+                print(name, "의 정보 입니다.")
+                plt.title("Area's CrimeRate Graphics")
+                plt.plot(dataPlot, 'ro:')
+                plt.xticks([0, 1, 2, 3, 4], ['2016', '2017', '2018', '2019', '2020'])
+                plt.legend(['Rate'], loc = 'upper left')
+                plt.ylabel("rate")
+                plt.grid()
+                plt.show()
+            
+            # 연도별 데이터를 활용한 수평 바 차트 시각화
+            elif(sele == 2) :
+                yNum = int(input("년도 입력 : ")) 
+                
+                number3 = 2020 - yNum
+                dic_data2 = []
+
+                dic_label = npData[2:, 0].tolist()
+                dic_data = npData[2:, calNum[number3]].tolist()
+                
+                for i in dic_data :
+                    dic_data2.append(float(i))
+
+                plt.title("Year's Rate Graph")
+                plt.barh(dic_label, dic_data2, align='center', height = 0.5)
+                plt.xlabel('Rate')
+                plt.ylabel('Area')
+                plt.grid()
+                plt.show()
+            
+            del dataPlot[:], dic_label[:], dic_data[:]
+            print("처음으로 돌아갑니다.")
+            print('-'*90)
+            
+        else :
+            print("다시 입력하세요..")
+    else : 
+        print("다시 입력하세요..")
+        continue
